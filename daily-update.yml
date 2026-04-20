@@ -1,11 +1,10 @@
-name: Daily Cloud Services Update
+name: Cloud Services Update (Every 72h)
 
 on:
   schedule:
-    # GitHub Actions cron is in UTC.
-    # 11:00 AM UAE (UTC+4) = 07:00 UTC
-    - cron: "0 7 * * *"
-  workflow_dispatch:   # lets you trigger it manually from the Actions tab
+    # Every 3 days at 07:00 UTC (11:00 AM UAE, UTC+4)
+    - cron: "0 7 */3 * *"
+  workflow_dispatch:
 
 jobs:
   build-and-send:

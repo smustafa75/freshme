@@ -26,9 +26,13 @@ from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 
 
 UAE_TZ = ZoneInfo("Asia/Dubai")
-LOOKBACK_HOURS = 30  # capture ~1 day + cron jitter buffer
+LOOKBACK_HOURS = 72  # fetch last 72 hours (runs every 3 days)
 HTTP_TIMEOUT = 20
-USER_AGENT = "CloudUpdatesBot/1.0 (+github-actions)"
+USER_AGENT = (
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+    "AppleWebKit/537.36 (KHTML, like Gecko) "
+    "Chrome/124.0.0.0 Safari/537.36"
+)
 
 
 # ---------- FEED CONFIG ----------
@@ -60,7 +64,7 @@ OCI_SERVICE_FEEDS = [
     ("GoldenGate",                     "goldengate"),
 ]
 
-OCI_BLOG_FEED = "https://blogs.oracle.com/cloud-infrastructure/rss"
+OCI_BLOG_FEED = "https://docs.oracle.com/en-us/iaas/releasenotes/services/feed"
 
 
 # ---------- EVENT CONFIG ----------
@@ -111,10 +115,19 @@ class Item:
 def _fetch(url: str) -> bytes:
     req = Request(url, headers={
         "User-Agent": USER_AGENT,
-        "Accept": "application/rss+xml, application/atom+xml, application/xml;q=0.9, */*;q=0.8",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.9",
+        "Accept-Encoding": "gzip, deflate, br",
+        "Connection": "keep-alive",
+        "Referer": "https://www.google.com/",
+        "DNT": "1",
     })
     with urlopen(req, timeout=HTTP_TIMEOUT) as r:
-        return r.read()
+        data = r.read()
+        if r.info().get("Content-Encoding") == "gzip":
+            import gzip
+            data = gzip.decompress(data)
+        return data
 
 
 def _strip_html(s: str) -> str:
