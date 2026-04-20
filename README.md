@@ -1,8 +1,8 @@
-# Daily Cloud Services Update (AWS + OCI) — GitHub Actions
+# Cloud Services Update (AWS + OCI) — GitHub Actions
 
-Automates a daily Excel report on AWS and OCI cloud services, pulling **live data from official RSS/Atom feeds**, and emailing it to a recipient at 11 AM UAE.
+Automates an Excel report on AWS and OCI cloud services every 3 days, pulling **live data from official RSS/Atom feeds**, and emailing it to a recipient at 11 AM UAE.
 
-- **Runs:** every day at **11:00 AM UAE** (07:00 UTC) via GitHub Actions
+- **Runs:** every **3 days at 11:00 AM UAE** (07:00 UTC) via GitHub Actions
 - **Live sources:** AWS What's New, AWS News Blog, OCI per-service release notes, OCI blog
 - **Events:** detects live/upcoming events (re:Invent, re:Inforce, Oracle AI World, Summits, etc.) and produces a dedicated Events sheet with any announcements that reference them
 - **Output:** `Cloud_Services_Update_YYYY-MM-DD.xlsx` attached to an email
@@ -14,11 +14,11 @@ Automates a daily Excel report on AWS and OCI cloud services, pulling **live dat
 The Excel file has 4 sheets:
 
 1. **Summary** — item counts, lookback window, links to primary sources
-2. **Events** — live and upcoming cloud events (30-day window) with dates, location, and any announcements from today's feed that reference them
-3. **AWS Updates** — every AWS announcement from the last ~24h, tagged with the likely service name
-4. **OCI Updates** — every OCI release-note item from the last ~24h, grouped by service
+2. **Events** — live and upcoming cloud events (30-day window) with dates, location, and any announcements from the feed that reference them
+3. **AWS Updates** — every AWS announcement from the last 72h, tagged with the likely service name
+4. **OCI Updates** — every OCI release-note item from the last 72h, grouped by service
 
-If a feed is quiet on a given day, the corresponding sheet shows "No new announcements in the lookback window" rather than failing.
+If a feed is quiet in the lookback window, the corresponding sheet shows "No new announcements captured in the lookback window" rather than failing.
 
 ---
 
@@ -29,10 +29,11 @@ cloud-updates-automation/
 ├── .github/
 │   └── workflows/
 │       └── daily-update.yml       # schedule + runner
-└── scripts/
-    ├── generate_report.py         # builds the Excel file from live feeds
-    └── send_email.py              # sends it via Gmail SMTP
+├── generate_report.py             # builds the Excel file from live feeds
+└── send_email.py                  # sends it via Gmail SMTP
 ```
+
+> Note: `generate_report.py` and `send_email.py` live at the repo root. The workflow runs `python send_email.py` from the `scripts/` working directory — adjust `working-directory` in the workflow if you move them.
 
 ---
 
@@ -57,28 +58,28 @@ GitHub Actions sends the email through Gmail SMTP. You can't use your regular Gm
 
 In the GitHub repo → **Settings → Secrets and variables → Actions → New repository secret**. Add three:
 
-| Name             | Value                                                 |
-|------------------|-------------------------------------------------------|
-| `GMAIL_USER`     | Sender Gmail address, e.g. `you@gmail.com`            |
-| `GMAIL_APP_PASS` | The 16-character App Password (no spaces)             |
-| `EMAIL_TO`       | `sabir1p2p@gmail.com`                                 |
+| Name             | Value                                      |
+|------------------|--------------------------------------------|
+| `GMAIL_USER`     | Sender Gmail address, e.g. `you@gmail.com` |
+| `GMAIL_APP_PASS` | The 16-character App Password (no spaces)  |
+| `EMAIL_TO`       | Recipient address(es)                      |
 
 ### 4) Test it
 
 1. Go to the **Actions** tab.
-2. Click the **Daily Cloud Services Update** workflow.
+2. Click the **Cloud Services Update (Every 72h)** workflow.
 3. Click **Run workflow** → **Run workflow**.
 4. ~1 minute later an email should arrive with the Excel attached.
 
-### 5) It now runs daily
+### 5) It now runs every 3 days
 
-Cron is set to `0 7 * * *` (UTC) = **11:00 AM UAE**.
+Cron is set to `0 7 */3 * *` (UTC) = **11:00 AM UAE**.
 
 ---
 
 ## Updating events (important, ~once a year)
 
-Events are hard-coded in `scripts/generate_report.py` in the `EVENTS` list near the top. Edit this list once a year — or whenever AWS/Oracle announce new dates.
+Events are hard-coded in `generate_report.py` in the `EVENTS` list near the top. Edit this list once a year — or whenever AWS/Oracle announce new dates.
 
 Each event has:
 
@@ -94,7 +95,7 @@ The script then:
 - Marks it **UPCOMING** if it starts within the next 30 days.
 - Hides it otherwise.
 
-For each event in scope, it searches the day's announcements for mentions of the event name (and a normalized short form, so "reInvent" and "re:Invent" both match) and attaches the matching items to that event's section.
+For each event in scope, it searches the feed items for mentions of the event name (and a normalized short form, so "reInvent" and "re:Invent" both match) and attaches the matching items to that event's section.
 
 Want a different window than 30 days? Change `window_days=30` in the `build_workbook` call.
 
@@ -102,19 +103,19 @@ Want a different window than 30 days? Change `window_days=30` in the `build_work
 
 ## Notes & tweaks
 
-### Change the send time
+### Change the run frequency / send time
 Edit `.github/workflows/daily-update.yml`:
 ```yaml
-- cron: "0 7 * * *"   # 07:00 UTC = 11:00 AM UAE
+- cron: "0 7 */3 * *"   # 07:00 UTC every 3 days = 11:00 AM UAE
 ```
 GitHub cron uses UTC. UAE is UTC+4.
 
 ### Change the lookback window
 In `generate_report.py`:
 ```python
-LOOKBACK_HOURS = 30
+LOOKBACK_HOURS = 72
 ```
-30h catches yesterday's items even with cron jitter. Raise it to 48 for a two-day view, etc.
+72h covers the 3-day run interval with room for cron jitter. Raise it to 96 for extra buffer, or lower it if you switch to a daily schedule.
 
 ### Send to multiple recipients
 Set `EMAIL_TO` to a comma-separated list, e.g. `a@x.com,b@y.com`. The script passes it straight into the `To:` header; Gmail accepts comma-separated addresses.
@@ -125,7 +126,7 @@ Set `EMAIL_TO` to a comma-separated list, e.g. `a@x.com,b@y.com`. The script pas
 
 ### Cost
 - **Public repo:** unlimited GitHub Actions minutes — free.
-- **Private repo:** 2,000 free minutes/month. This job uses ~1 min/day → ~30 min/month. Free.
+- **Private repo:** 2,000 free minutes/month. This job uses ~1 min/run → ~10 min/month. Free.
 
 ---
 
@@ -135,7 +136,7 @@ Set `EMAIL_TO` to a comma-separated list, e.g. `a@x.com,b@y.com`. The script pas
 
 **403 Forbidden on feed fetches** → Rare, but some CDNs may rate-limit. Retry next run; the script already sends a descriptive User-Agent.
 
-**Empty AWS/OCI Updates sheet** → Genuinely quiet day on the feeds, or a feed outage. The Events sheet will still show in-scope events.
+**Empty AWS/OCI Updates sheet** → Genuinely quiet period on the feeds, or a feed outage. The Events sheet will still show in-scope events.
 
 **Scheduled runs don't fire at exactly 11:00** → GitHub cron can be delayed a few minutes under load. The `workflow_dispatch` button always runs immediately for manual triggers.
 
