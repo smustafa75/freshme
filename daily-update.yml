@@ -1,0 +1,33 @@
+name: Daily Cloud Services Update
+
+on:
+  schedule:
+    # GitHub Actions cron is in UTC.
+    # 11:00 AM UAE (UTC+4) = 07:00 UTC
+    - cron: "0 7 * * *"
+  workflow_dispatch:   # lets you trigger it manually from the Actions tab
+
+jobs:
+  build-and-send:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install openpyxl
+
+      - name: Generate report and send email
+        env:
+          GMAIL_USER: ${{ secrets.GMAIL_USER }}
+          GMAIL_APP_PASS: ${{ secrets.GMAIL_APP_PASS }}
+          EMAIL_TO: ${{ secrets.EMAIL_TO }}
+        working-directory: scripts
+        run: python send_email.py
