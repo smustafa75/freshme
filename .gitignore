@@ -7,7 +7,7 @@ venv/
 *.egg-info/
 
 # Output files — never commit generated reports
-#*.xlsx
+*.xlsx
 
 # OS
 .DS_Store
