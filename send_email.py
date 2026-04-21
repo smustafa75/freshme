@@ -4,7 +4,7 @@ Sends the generated Excel file as an email attachment via Gmail SMTP.
 Env vars required (set as GitHub Secrets):
   GMAIL_USER     - the Gmail address used to send (e.g. sender@gmail.com)
   GMAIL_APP_PASS - a Google "App Password" (NOT your normal password)
-  EMAIL_TO       - destination address (e.g. sabir1p2p@gmail.com)
+  EMAIL_TO       - destination address (e.g. recipient@example.com)
 """
 import os
 import sys

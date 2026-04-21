@@ -28,5 +28,5 @@ jobs:
           GMAIL_USER: ${{ secrets.GMAIL_USER }}
           GMAIL_APP_PASS: ${{ secrets.GMAIL_APP_PASS }}
           EMAIL_TO: ${{ secrets.EMAIL_TO }}
-        working-directory: scripts
+        working-directory: .
         run: python send_email.py
