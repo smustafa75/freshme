@@ -17,3 +17,6 @@ Thumbs.db
 .env
 *.env
 secrets.*
+
+# Local drafts — never commit
+article.md
